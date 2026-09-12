@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { fetchApi } from '@/lib/api';
+import { fetchApi, getBaseApiUrl } from '@/lib/api';
 import {
   Users,
   Search,
@@ -665,7 +665,7 @@ export default function AdminParticipantsPage() {
                             {/* Acciones Rápidas del Curso */}
                             <div className="flex items-center space-x-2 shrink-0">
                               <a
-                                href={`http://localhost:4000/api/v1/certificates/download?publicId=${cert.publicId}`}
+                                href={`${getBaseApiUrl()}/certificates/download?publicId=${cert.publicId}`}
                                 target="_blank"
                                 rel="noreferrer"
                                 className="px-3 py-2 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 font-semibold text-xs flex items-center space-x-1.5 border border-blue-500/30"
@@ -738,7 +738,7 @@ export default function AdminParticipantsPage() {
 
                           <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between gap-2">
                             <a
-                              href={`http://localhost:4000/api/v1/certificates/download?publicId=${cert.publicId}`}
+                              href={`${getBaseApiUrl()}/certificates/download?publicId=${cert.publicId}`}
                               target="_blank"
                               rel="noreferrer"
                               className="flex-1 py-1.5 px-2.5 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 font-semibold text-[11px] flex items-center justify-center space-x-1"
@@ -1016,7 +1016,7 @@ export default function AdminParticipantsPage() {
             {/* Acciones */}
             <div className="grid grid-cols-2 gap-2 pt-1">
               <a
-                href={`http://localhost:4000/api/v1/certificates/download?publicId=${showSuccessModal.publicId}`}
+                href={`${getBaseApiUrl()}/certificates/download?publicId=${showSuccessModal.publicId}`}
                 target="_blank"
                 rel="noreferrer"
                 className="py-2.5 px-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs flex items-center justify-center space-x-1.5 shadow-md shadow-blue-600/25 transition-all"
@@ -1073,12 +1073,13 @@ export default function AdminParticipantsPage() {
 
             <div className="bg-white p-4 rounded-2xl inline-block shadow-inner mx-auto">
               <img
-                src={`http://localhost:4000/api/v1/admin/certificates/${showQrModal.id}/qr`}
+                src={`${getBaseApiUrl()}/admin/certificates/${showQrModal.id}/qr`}
                 alt="QR Code"
                 className="w-48 h-48 mx-auto"
                 onError={(e) => {
+                  const siteUrl = typeof window !== 'undefined' ? window.location.origin : 'https://certificados-frontend.onrender.com';
                   (e.target as any).src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
-                    `http://localhost:3000/verify/${showQrModal.publicId}`
+                    `${siteUrl}/verify/${showQrModal.publicId}`
                   )}`;
                 }}
               />

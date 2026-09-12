@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { fetchApi } from '@/lib/api';
+import { fetchApi, getBaseApiUrl } from '@/lib/api';
 import {
   Sliders,
   Upload,
@@ -263,7 +263,7 @@ export default function CertificateTemplateDesigner({
         });
 
         if (searchRes.downloadTicket) {
-          const downloadUrl = `http://localhost:4000/api/v1/certificates/download?ticket=${searchRes.downloadTicket}`;
+          const downloadUrl = `${getBaseApiUrl()}/certificates/download?ticket=${searchRes.downloadTicket}`;
           window.open(downloadUrl, '_blank');
           setStatusMsg({ type: 'success', text: '✅ Muestra PDF generada en nueva pestaña.' });
         }

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { fetchApi } from '@/lib/api';
+import { fetchApi, getBaseApiUrl } from '@/lib/api';
 import { Award, Download, Search, AlertCircle, CheckCircle2, ShieldCheck, User, CreditCard } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -55,7 +55,7 @@ export default function CertificateDownloadForm({
 
       // Si existe ticket de descarga, abrir automáticamente en nueva pestaña
       if (res.downloadTicket) {
-        const downloadUrl = `http://localhost:4000/api/v1/certificates/download?ticket=${res.downloadTicket}`;
+        const downloadUrl = `${getBaseApiUrl()}/certificates/download?ticket=${res.downloadTicket}`;
         window.open(downloadUrl, '_blank');
       }
     } catch (err: any) {
@@ -151,7 +151,7 @@ export default function CertificateDownloadForm({
               </p>
               {successData.downloadTicket && (
                 <a
-                  href={`http://localhost:4000/api/v1/certificates/download?ticket=${successData.downloadTicket}`}
+                  href={`${getBaseApiUrl()}/certificates/download?ticket=${successData.downloadTicket}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center space-x-2 text-xs font-bold text-blue-900 underline pt-1"

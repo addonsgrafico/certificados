@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { fetchApi } from '@/lib/api';
+import { fetchApi, getBaseApiUrl } from '@/lib/api';
 import {
   Award,
   Plus,
@@ -320,7 +320,7 @@ export default function AdminCertificatesPage() {
                     </td>
                     <td className="px-4 py-3 text-right space-x-1">
                       <a
-                        href={`http://localhost:4000/api/v1/certificates/download?publicId=${cert.publicId}`}
+                        href={`${getBaseApiUrl()}/certificates/download?publicId=${cert.publicId}`}
                         target="_blank"
                         rel="noreferrer"
                         title="Ver / Descargar PDF Oficial"
@@ -582,7 +582,7 @@ export default function AdminCertificatesPage() {
             {/* Botones de Acción Inmediata */}
             <div className="grid grid-cols-2 gap-2 pt-1">
               <a
-                href={`http://localhost:4000/api/v1/certificates/download?publicId=${showSuccessModal.publicId}`}
+                href={`${getBaseApiUrl()}/certificates/download?publicId=${showSuccessModal.publicId}`}
                 target="_blank"
                 rel="noreferrer"
                 className="py-2.5 px-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs flex items-center justify-center space-x-1.5 shadow-md shadow-blue-600/25 transition-all"
