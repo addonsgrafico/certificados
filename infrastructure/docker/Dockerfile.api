@@ -1,0 +1,38 @@
+FROM node:20-alpine AS base
+RUN apk add --no-cache curl
+WORKDIR /app
+
+# ---- Dependencias ----
+FROM base AS deps
+COPY package.json package-lock.json ./
+COPY backend/package.json ./backend/
+COPY packages/shared/package.json ./packages/shared/
+RUN npm ci --workspace=backend --workspace=packages/shared
+
+# ---- Build shared ----
+FROM deps AS builder-shared
+COPY packages/shared/ ./packages/shared/
+RUN npm run build --workspace=packages/shared
+
+# ---- Build API ----
+FROM builder-shared AS builder-api
+COPY backend/ ./backend/
+RUN npm run build --workspace=backend
+
+# ---- Producción ----
+FROM node:20-alpine AS production
+RUN apk add --no-cache curl && addgroup -S appgroup && adduser -S appuser -G appgroup
+WORKDIR /app
+
+COPY --from=builder-api --chown=appuser:appgroup /app/backend/dist ./dist
+COPY --from=builder-api --chown=appuser:appgroup /app/backend/prisma ./prisma
+COPY --from=deps --chown=appuser:appgroup /app/node_modules ./node_modules
+COPY --from=deps --chown=appuser:appgroup /app/backend/node_modules ./backend/node_modules
+
+RUN mkdir -p /app/storage/private/certificates && chown appuser:appgroup /app/storage/private/certificates
+
+USER appuser
+EXPOSE 4000
+ENV NODE_ENV=production
+
+CMD ["node", "dist/main"]

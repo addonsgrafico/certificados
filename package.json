@@ -1,0 +1,24 @@
+{
+  "name": "certificados-platform-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Plataforma Web Segura de Emisión, Gestión, Verificación y Descarga de Certificados Digitales",
+  "workspaces": [
+    "backend",
+    "frontend",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n \"BACKEND,FRONTEND\" -c \"cyan,magenta\" \"npm run dev --workspace=backend\" \"npm run dev --workspace=frontend\"",
+    "dev:backend": "npm run dev --workspace=backend",
+    "dev:frontend": "npm run dev --workspace=frontend",
+    "build": "npm run build --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "bootstrap:superadmin": "ts-node scripts/bootstrap-superadmin.ts"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.5",
+    "typescript": "^5.4.5"
+  }
+}

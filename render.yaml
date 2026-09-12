@@ -1,0 +1,73 @@
+services:
+  # ==============================================================================
+  # BACKEND SERVICE (NestJS API REST, Prisma ORM, PDF Generation, QR Verification)
+  # ==============================================================================
+  - type: web
+    name: certificados-backend
+    env: node
+    plan: free
+    region: oregon
+    rootDir: .
+    buildCommand: npm install && npm run build --workspace=packages/shared && npx prisma generate --schema=./backend/prisma/schema.prisma && npm run build --workspace=backend
+    startCommand: npx prisma migrate deploy --schema=./backend/prisma/schema.prisma && npm run start:prod --workspace=backend
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: DATABASE_URL
+        fromDatabase:
+          name: certificados-db
+          property: connectionString
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: CERTIFICATE_CODE_PEPPER
+        generateValue: true
+      - key: MFA_ENCRYPTION_KEY
+        generateValue: true
+      - key: STORAGE_DRIVER
+        value: local
+      - key: STORAGE_PATH
+        value: ./storage/private/certificates
+      - key: CORS_ORIGINS
+        fromService:
+          type: web
+          name: certificados-frontend
+          property: host
+      - key: FRONTEND_URL
+        fromService:
+          type: web
+          name: certificados-frontend
+          property: host
+
+  # ==============================================================================
+  # FRONTEND SERVICE (Next.js 14, TailwindCSS, Admin Suite, Public Portal)
+  # ==============================================================================
+  - type: web
+    name: certificados-frontend
+    env: node
+    plan: free
+    region: oregon
+    rootDir: .
+    buildCommand: npm install && npm run build --workspace=packages/shared && npm run build --workspace=frontend
+    startCommand: npm run start --workspace=frontend
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: NEXT_PUBLIC_API_URL
+        fromService:
+          type: web
+          name: certificados-backend
+          property: host
+
+# ==============================================================================
+# MANAGED DATABASE (PostgreSQL 15+)
+# ==============================================================================
+databases:
+  - name: certificados-db
+    databaseName: certificados_prod
+    user: certificados_user
+    plan: free
+    region: oregon

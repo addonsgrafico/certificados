@@ -1,0 +1,213 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  AUDITOR
+}
+
+enum CertificateStatus {
+  ACTIVE
+  REVOKED
+  EXPIRED
+  ARCHIVED
+}
+
+enum SecurityEventType {
+  FAILED_LOGIN
+  SUSPICIOUS_SEARCH
+  RATE_LIMIT_EXCEEDED
+  PATH_TRAVERSAL_ATTEMPT
+  UNAUTHORIZED_ACCESS
+  INVALID_FILE_UPLOAD
+  MFA_FAILURE
+}
+
+model AdminUser {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  passwordHash String
+  fullName     String
+  role         Role      @default(ADMIN)
+  isActive     Boolean   @default(true)
+  mfaEnabled   Boolean   @default(false)
+  mfaSecret    String?
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  archivedAt   DateTime?
+
+  sessions      AdminSession[]
+  recoveryCodes RecoveryCode[]
+  auditLogs     AuditLog[]
+  createdCerts  Certificate[]  @relation("CreatedByAdmin")
+  revokedCerts  Certificate[]  @relation("RevokedByAdmin")
+}
+
+model AdminSession {
+  id         String    @id @default(uuid())
+  adminId    String
+  admin      AdminUser @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  tokenHash  String    @unique
+  ipAddress  String
+  userAgent  String
+  expiresAt  DateTime
+  lastSeenAt DateTime  @default(now())
+  createdAt  DateTime  @default(now())
+}
+
+model RecoveryCode {
+  id        String    @id @default(uuid())
+  adminId   String
+  admin     AdminUser @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  codeHash  String
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+}
+
+model CourseEvent {
+  id                   String    @id @default(uuid())
+  name                 String
+  subtitle             String?
+  description          String?
+  duration             String?
+  syllabus             Json?
+  objectives           Json?
+  institution          String
+  instructor           String
+  date                 DateTime
+  imageUrl             String?
+  templateStoragePath  String?
+  templateOriginalName String?
+  templateConfig       Json?
+  isActive             Boolean   @default(true)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  archivedAt           DateTime?
+
+  certificates Certificate[]
+}
+
+model Participant {
+  id               String   @id @default(uuid())
+  fullName         String
+  email            String?
+  internalDocument String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  certificates Certificate[]
+}
+
+model CertificateFile {
+  id           String   @id @default(uuid())
+  originalName String
+  storagePath  String
+  mimeType     String
+  fileSize     Int
+  sha256Hash   String
+  createdAt    DateTime @default(now())
+
+  certificates Certificate[]
+}
+
+model Certificate {
+  id                String            @id @default(uuid())
+  publicId          String            @unique
+  participantId     String
+  participant       Participant       @relation(fields: [participantId], references: [id])
+  courseEventId     String
+  courseEvent       CourseEvent       @relation(fields: [courseEventId], references: [id])
+  codeDigest        String            @unique
+  codeLastFour      String
+  verificationToken String            @unique @default(uuid())
+  status            CertificateStatus @default(ACTIVE)
+  issuedAt          DateTime          @default(now())
+  expiresAt         DateTime?
+  revokedAt         DateTime?
+  revokedById       String?
+  revokedBy         AdminUser?        @relation("RevokedByAdmin", fields: [revokedById], references: [id])
+  revocationReason  String?
+  certificateFileId String
+  certificateFile   CertificateFile   @relation(fields: [certificateFileId], references: [id])
+  createdById       String
+  createdBy         AdminUser         @relation("CreatedByAdmin", fields: [createdById], references: [id])
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  archivedAt        DateTime?
+
+  downloadTickets DownloadTicket[]
+  qrScanLogs      QrScanLog[]
+
+  @@index([codeDigest])
+  @@index([verificationToken])
+  @@index([status])
+}
+
+model DownloadTicket {
+  id            String      @id @default(uuid())
+  ticketToken   String      @unique
+  certificateId String
+  certificate   Certificate @relation(fields: [certificateId], references: [id], onDelete: Cascade)
+  expiresAt     DateTime
+  usedAt        DateTime?
+  ipAddress     String
+  createdAt     DateTime    @default(now())
+}
+
+model QrScanLog {
+  id            String      @id @default(uuid())
+  certificateId String
+  certificate   Certificate @relation(fields: [certificateId], references: [id], onDelete: Cascade)
+  ipAddress     String
+  userAgent     String
+  scannedAt     DateTime    @default(now())
+}
+
+model AuditLog {
+  id         String     @id @default(uuid())
+  adminId    String?
+  admin      AdminUser? @relation(fields: [adminId], references: [id], onDelete: SetNull)
+  action     String
+  resource   String
+  resourceId String?
+  ipAddress  String
+  userAgent  String
+  result     String
+  metadata   Json?
+  createdAt  DateTime   @default(now())
+}
+
+model SecurityEvent {
+  id          String            @id @default(uuid())
+  eventType   SecurityEventType
+  description String
+  ipAddress   String
+  userAgent   String
+  metadata    Json?
+  createdAt   DateTime          @default(now())
+}
+
+model SiteSetting {
+  id               String   @id @default("1")
+  orgName          String   @default("Organización Emisora de Certificados")
+  orgLogoUrl       String?
+  coachName        String?  @default("Dra. Elena Valenzuela")
+  coachTitle       String?  @default("Coach Educativa & Mentora Institucional")
+  coachBio         String?  @default("Especialista en desarrollo personal, liderazgo académico y tutorías personalizadas con más de 10 años de trayectoria acompañando a estudiantes e instituciones.")
+  coachAvatarUrl   String?
+  coachSpecialties Json?
+  contactEmail     String?
+  contactPhone     String?
+  whatsapp         String?
+  address          String?
+  socialLinks      Json?
+  updatedAt        DateTime @updatedAt
+}

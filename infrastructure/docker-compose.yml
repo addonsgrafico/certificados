@@ -1,0 +1,109 @@
+version: '3.9'
+
+services:
+  # =============================================
+  # PostgreSQL Database
+  # =============================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: certificados_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-certificados_db}
+      POSTGRES_USER: ${POSTGRES_USER:-certificados_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-certificados_user} -d ${POSTGRES_DB:-certificados_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - internal
+
+  # =============================================
+  # NestJS API Backend
+  # =============================================
+  api:
+    build:
+      context: ./backend
+      dockerfile: ../../infrastructure/docker/Dockerfile.api
+    container_name: certificados_api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-certificados_user}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-certificados_db}?schema=public
+      SESSION_SECRET: ${SESSION_SECRET:?SESSION_SECRET must be set}
+      CERTIFICATE_CODE_PEPPER: ${CERTIFICATE_CODE_PEPPER:?CERTIFICATE_CODE_PEPPER must be set}
+      MFA_ENCRYPTION_KEY: ${MFA_ENCRYPTION_KEY:?MFA_ENCRYPTION_KEY must be set}
+      APP_URL: ${APP_URL:-https://certificados.example.com}
+      FRONTEND_URL: ${FRONTEND_URL:-https://certificados.example.com}
+      CORS_ORIGINS: ${CORS_ORIGINS:-https://certificados.example.com}
+      STORAGE_DRIVER: ${STORAGE_DRIVER:-local}
+      STORAGE_PATH: /app/storage/private/certificates
+      MAX_PDF_SIZE: ${MAX_PDF_SIZE:-10485760}
+      ANTIVIRUS_ENABLED: ${ANTIVIRUS_ENABLED:-false}
+    volumes:
+      - private_storage:/app/storage/private/certificates
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000/api/v1/settings"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    networks:
+      - internal
+
+  # =============================================
+  # Next.js Web Frontend
+  # =============================================
+  web:
+    build:
+      context: .
+      dockerfile: ./infrastructure/docker/Dockerfile.web
+    container_name: certificados_web
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: http://api:4000/api/v1
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - internal
+
+  # =============================================
+  # Nginx Reverse Proxy
+  # =============================================
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: certificados_nginx
+    restart: unless-stopped
+    depends_on:
+      - web
+      - api
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./infrastructure/docker/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./infrastructure/ssl:/etc/nginx/ssl:ro
+    networks:
+      - internal
+
+volumes:
+  postgres_data:
+  private_storage:
+
+networks:
+  internal:
+    driver: bridge
