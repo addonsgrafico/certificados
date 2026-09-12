@@ -51,7 +51,7 @@ services:
       - key: PORT
         value: 10000
       - key: NEXT_PUBLIC_API_URL
-        value: https://certificados-backend.onrender.com
+        value: https://certificados-backend-sxz8.onrender.com
 
 # ==============================================================================
 # MANAGED DATABASE (PostgreSQL 15+)

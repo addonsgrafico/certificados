@@ -4,14 +4,7 @@ import * as argon2 from 'argon2';
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🌱 Poblando base de datos con información oficial de CONSULTANCY ORGANIZATIONAL LLC y Deisy Barrera...');
-
-  // 1. Limpiar datos existentes respetando restricciones
-  await prisma.downloadTicket.deleteMany();
-  await prisma.qrScanLog.deleteMany();
-  await prisma.certificate.deleteMany();
-  await prisma.participant.deleteMany();
-  await prisma.courseEvent.deleteMany();
+  console.log('🌱 Inicializando datos del sistema...');
 
   // Buscar o crear Admin por defecto con contraseña válida 'CambiarPassword2024!'
   const adminEmail = (process.env.INITIAL_SUPERADMIN_EMAIL || 'admin@ejemplo.com').trim().toLowerCase();
@@ -29,6 +22,7 @@ async function main() {
         isActive: true,
       },
     });
+    console.log(`✅ SuperAdmin creado: ${adminEmail} (pass: ${adminPass})`);
   } else {
     admin = await prisma.adminUser.update({
       where: { id: admin.id },
@@ -37,7 +31,16 @@ async function main() {
         isActive: true,
       },
     });
+    console.log(`✅ SuperAdmin actualizado: ${adminEmail}`);
   }
+
+  const coursesCount = await prisma.courseEvent.count();
+  if (coursesCount > 0) {
+    console.log(`ℹ️ La base de datos ya contiene ${coursesCount} cursos. Omitiendo recreación de datos.`);
+    return;
+  }
+
+  console.log('🌱 Base de datos vacía. Insertando 5 cursos, 5 estudiantes y certificados de ejemplo...');
 
   // Crear archivo de certificado genérico para seed
   let certFile = await prisma.certificateFile.findFirst();

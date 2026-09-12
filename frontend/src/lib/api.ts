@@ -1,11 +1,23 @@
-const rawBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
-const API_BASE_URL = rawBase.endsWith('/api/v1') ? rawBase : `${rawBase.replace(/\/+$/, '')}/api/v1`;
+export const getBaseApiUrl = () => {
+  const envUrl = process.env.NEXT_PUBLIC_API_URL;
+  if (envUrl && envUrl.startsWith('http')) {
+    if (envUrl.includes('certificados-backend.onrender.com')) {
+      return 'https://certificados-backend-sxz8.onrender.com/api/v1';
+    }
+    return envUrl.endsWith('/api/v1') ? envUrl : `${envUrl.replace(/\/+$/, '')}/api/v1`;
+  }
+  if (typeof window !== 'undefined' && window.location.hostname.endsWith('onrender.com')) {
+    return 'https://certificados-backend-sxz8.onrender.com/api/v1';
+  }
+  return 'http://localhost:4000/api/v1';
+};
 
 export async function fetchApi<T = any>(
   endpoint: string,
   options: RequestInit = {},
 ): Promise<T> {
-  const url = `${API_BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+  const baseUrl = getBaseApiUrl();
+  const url = `${baseUrl}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
 
   const headers = {
     'Content-Type': 'application/json',

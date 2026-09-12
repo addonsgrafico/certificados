@@ -53,6 +53,11 @@ async function bootstrap() {
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
   });
 
+  // Healthcheck simple para Render en /
+  const expressApp = app.getHttpAdapter().getInstance();
+  expressApp.get('/', (_req: any, res: any) => res.status(200).json({ status: 'ok', service: 'certificados-backend' }));
+  expressApp.head('/', (_req: any, res: any) => res.status(200).end());
+
   // 4. Prefijo Global API
   app.setGlobalPrefix('api/v1');
 
