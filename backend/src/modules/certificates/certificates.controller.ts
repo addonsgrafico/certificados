@@ -59,15 +59,20 @@ export class CertificatesController {
   }
 
   @Get('certificates/download')
-  @ApiOperation({ summary: 'Descargar PDF usando ticket de descarga temporal' })
+  @ApiOperation({ summary: 'Descargar PDF usando ticket de descarga temporal o ID público' })
   async downloadPdf(
     @Query('ticket') ticket: string,
+    @Query('publicId') publicId: string,
     @Req() req: Request,
     @Res() res: Response,
   ) {
-    if (!ticket) throw new BadRequestException('Ticket de descarga es requerido.');
+    if (!ticket && !publicId) {
+      throw new BadRequestException('Se requiere ticket de descarga o publicId del certificado.');
+    }
     const ipAddress = req.ip || 'unknown';
-    const fileResult = await this.certificatesService.getPdfByDownloadTicket(ticket, ipAddress);
+    const fileResult = ticket
+      ? await this.certificatesService.getPdfByDownloadTicket(ticket, ipAddress)
+      : await this.certificatesService.getPdfByPublicId(publicId);
 
     res.setHeader('Content-Type', fileResult.mimeType);
     res.setHeader(

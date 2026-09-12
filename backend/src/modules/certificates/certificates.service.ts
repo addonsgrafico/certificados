@@ -48,7 +48,8 @@ export class CertificatesService {
     institutionName: string;
     instructorName: string;
     issuedAt: Date;
-    formattedCode: string;
+    publicId?: string;
+    formattedCode?: string;
     verificationToken: string;
     templateStoragePath?: string | null;
     templateConfig?: any;
@@ -88,14 +89,6 @@ export class CertificatesService {
             color: nameColor,
           });
 
-          // Código Secreto
-          page.drawText(`Código: ${data.formattedCode}`, {
-            x: width - 210,
-            y: 135,
-            size: 10,
-            font: fontBold,
-            color: nameColor,
-          });
 
           // QR de Verificación
           try {
@@ -251,31 +244,89 @@ export class CertificatesService {
       color: mutedGray,
     });
 
-    // Secciones Inferiores: Firma y Código Secreto QR
-    // 1. Firma Coach / Instructora (Izquierda)
-    const coachName = data.instructorName || 'Dra. Elena Valenzuela';
-    page.drawLine({ start: { x: 80, y: 110 }, end: { x: 300, y: 110 }, thickness: 1, color: navyColor });
-    page.drawText(coachName, { x: 80, y: 92, size: 12, font: fontBold, color: navyColor });
-    page.drawText('Instructora / Coach Educativa', { x: 80, y: 77, size: 10, font: fontRegular, color: mutedGray });
+    // Secciones Inferiores: Firma Centralizada, Acreditación y QR Oficial
+    // 1. Firma Coach / Instructora (Centrada horizontalmente en el certificado)
+    const coachName = data.instructorName || 'Deisy Barrera';
+    const centerX = width / 2;
+    const lineHalfWidth = 130;
 
-    // 2. Bloque de Código de Verificación (Centro)
-    page.drawText('Código Secreto de Descarga:', { x: 340, y: 95, size: 10, font: fontRegular, color: mutedGray });
-    page.drawText(data.formattedCode, { x: 340, y: 77, size: 13, font: fontBold, color: navyColor });
+    // Línea divisoria de firma
+    page.drawLine({
+      start: { x: centerX - lineHalfWidth, y: 115 },
+      end: { x: centerX + lineHalfWidth, y: 115 },
+      thickness: 1,
+      color: navyColor,
+    });
 
-    // 3. QR Code de Autenticidad (Derecha)
+    // Nombre de la instructora
+    const coachNameWidth = fontBold.widthOfTextAtSize(coachName, 13);
+    page.drawText(coachName, {
+      x: centerX - coachNameWidth / 2,
+      y: 97,
+      size: 13,
+      font: fontBold,
+      color: navyColor,
+    });
+
+    // Cargo / Título institucional
+    const coachTitle = 'Instructora / Coach Educativa';
+    const coachTitleWidth = fontRegular.widthOfTextAtSize(coachTitle, 10);
+    page.drawText(coachTitle, {
+      x: centerX - coachTitleWidth / 2,
+      y: 82,
+      size: 10,
+      font: fontRegular,
+      color: mutedGray,
+    });
+
+    // Institución bajo la firma
+    const instSub = data.institutionName || 'CONSULTANCY ORGANIZATIONAL LLC';
+    const instSubWidth = fontRegular.widthOfTextAtSize(instSub, 9);
+    page.drawText(instSub, {
+      x: centerX - instSubWidth / 2,
+      y: 69,
+      size: 9,
+      font: fontRegular,
+      color: goldColor,
+    });
+
+    // 2. Información de Acreditación Oficial (Extremo Izquierdo)
+    page.drawText('Acreditación Oficial', {
+      x: 75,
+      y: 95,
+      size: 10,
+      font: fontBold,
+      color: navyColor,
+    });
+    page.drawText(`ID: ${data.publicId || 'CERT-OFICIAL'}`, {
+      x: 75,
+      y: 80,
+      size: 9,
+      font: fontRegular,
+      color: darkGray,
+    });
+    page.drawText('Firma y Verificación Digital', {
+      x: 75,
+      y: 68,
+      size: 8,
+      font: fontRegular,
+      color: mutedGray,
+    });
+
+    // 3. QR Code de Autenticidad (Extremo Derecho)
     try {
       const verificationUrl = `${this.appUrl}/verificar/${data.verificationToken}`;
       const qrPngBuffer = await qrcode.toBuffer(verificationUrl, { margin: 1, width: 140 });
       const qrImage = await pdfDoc.embedPng(qrPngBuffer);
       page.drawImage(qrImage, {
-        x: width - 180,
-        y: 50,
-        width: 105,
-        height: 105,
+        x: width - 170,
+        y: 48,
+        width: 95,
+        height: 95,
       });
       page.drawText('Escanear para verificar', {
-        x: width - 175,
-        y: 40,
+        x: width - 165,
+        y: 38,
         size: 8,
         font: fontRegular,
         color: mutedGray,
@@ -338,6 +389,11 @@ export class CertificatesService {
     const codeLastFour = getCodeLastFour(normalizedCode);
     const verificationToken = crypto.randomUUID();
 
+    // Generar Public ID amigable (e.g. CERT-2026-X891)
+    const year = new Date().getFullYear();
+    const randomHex = crypto.randomBytes(2).toString('hex').toUpperCase();
+    const publicId = `CERT-${year}-${randomHex}`;
+
     // 4. Si no se proporcionó archivo PDF, generar uno automáticamente con pdf-lib
     let finalFile = file;
     if (!finalFile) {
@@ -347,6 +403,7 @@ export class CertificatesService {
         institutionName: course.institution,
         instructorName: course.instructor,
         issuedAt: data.issuedAt ? new Date(data.issuedAt) : new Date(),
+        publicId,
         formattedCode,
         verificationToken,
         templateStoragePath: course.templateStoragePath,
@@ -356,7 +413,7 @@ export class CertificatesService {
       finalFile = {
         buffer: generatedBuffer,
         size: generatedBuffer.length,
-        originalname: `Certificado_${course.name.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`,
+        originalname: `Certificado_${publicId}.pdf`,
         mimetype: 'application/pdf',
       } as Express.Multer.File;
     }
@@ -373,11 +430,6 @@ export class CertificatesService {
         sha256Hash: savedFile.sha256Hash,
       },
     });
-
-    // Generar Public ID amigable (e.g. CERT-2026-X891)
-    const year = new Date().getFullYear();
-    const randomHex = crypto.randomBytes(2).toString('hex').toUpperCase();
-    const publicId = `CERT-${year}-${randomHex}`;
 
     // Opcional: Estampar QR en el PDF si se subió manualmente
     if (file) {
@@ -687,7 +739,11 @@ export class CertificatesService {
       where: { ticketToken },
       include: {
         certificate: {
-          include: { certificateFile: true },
+          include: {
+            certificateFile: true,
+            participant: true,
+            courseEvent: true,
+          },
         },
       },
     });
@@ -712,12 +768,76 @@ export class CertificatesService {
 
     const cert = ticket.certificate;
     if (cert.status === CertificateStatus.REVOKED) {
-      throw new ForbiddenException('El certificado está revocando.');
+      throw new ForbiddenException('El certificado está revocado.');
     }
 
-    const fileBuffer = await this.storageService.getFileBuffer(
-      cert.certificateFile.storagePath,
-    );
+    let fileBuffer: Buffer;
+    try {
+      fileBuffer = await this.storageService.getFileBuffer(
+        cert.certificateFile.storagePath,
+      );
+    } catch (e) {
+      fileBuffer = await this.buildAutoGeneratedPdfCertificate({
+        participantName: cert.participant.fullName,
+        courseName: cert.courseEvent.name,
+        institutionName: cert.courseEvent.institution,
+        instructorName: cert.courseEvent.instructor,
+        issuedAt: cert.issuedAt,
+        publicId: cert.publicId,
+        formattedCode: cert.codeLastFour,
+        verificationToken: cert.verificationToken,
+        templateStoragePath: cert.courseEvent.templateStoragePath,
+        templateConfig: cert.courseEvent.templateConfig,
+      });
+    }
+
+    return {
+      buffer: fileBuffer,
+      filename: `Certificado-${cert.publicId}.pdf`,
+      mimeType: 'application/pdf',
+    };
+  }
+
+  /**
+   * Descargar el PDF directamente mediante su publicId (utilizado desde el panel de control y accesos directos).
+   */
+  async getPdfByPublicId(publicId: string) {
+    const cert = await this.prisma.certificate.findUnique({
+      where: { publicId: publicId.trim() },
+      include: {
+        certificateFile: true,
+        participant: true,
+        courseEvent: true,
+      },
+    });
+
+    if (!cert) {
+      throw new NotFoundException(`Certificado con ID ${publicId} no encontrado.`);
+    }
+
+    if (cert.status === CertificateStatus.REVOKED) {
+      throw new ForbiddenException('El certificado ha sido revocado.');
+    }
+
+    let fileBuffer: Buffer;
+    try {
+      fileBuffer = await this.storageService.getFileBuffer(
+        cert.certificateFile.storagePath,
+      );
+    } catch (e) {
+      fileBuffer = await this.buildAutoGeneratedPdfCertificate({
+        participantName: cert.participant.fullName,
+        courseName: cert.courseEvent.name,
+        institutionName: cert.courseEvent.institution,
+        instructorName: cert.courseEvent.instructor,
+        issuedAt: cert.issuedAt,
+        publicId: cert.publicId,
+        formattedCode: cert.codeLastFour,
+        verificationToken: cert.verificationToken,
+        templateStoragePath: cert.courseEvent.templateStoragePath,
+        templateConfig: cert.courseEvent.templateConfig,
+      });
+    }
 
     return {
       buffer: fileBuffer,
