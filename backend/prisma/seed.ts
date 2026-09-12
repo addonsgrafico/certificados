@@ -1,4 +1,5 @@
 import { PrismaClient, CertificateStatus } from '@prisma/client';
+import * as argon2 from 'argon2';
 
 const prisma = new PrismaClient();
 
@@ -12,15 +13,28 @@ async function main() {
   await prisma.participant.deleteMany();
   await prisma.courseEvent.deleteMany();
 
-  // Buscar o crear Admin por defecto
-  let admin = await prisma.adminUser.findFirst({ where: { email: 'admin@ejemplo.com' } });
+  // Buscar o crear Admin por defecto con contraseña válida 'CambiarPassword2024!'
+  const adminEmail = (process.env.INITIAL_SUPERADMIN_EMAIL || 'admin@ejemplo.com').trim().toLowerCase();
+  const adminPass = process.env.INITIAL_SUPERADMIN_PASSWORD || 'CambiarPassword2024!';
+  const passwordHash = await argon2.hash(adminPass);
+
+  let admin = await prisma.adminUser.findFirst({ where: { email: adminEmail } });
   if (!admin) {
     admin = await prisma.adminUser.create({
       data: {
-        email: 'admin@ejemplo.com',
-        fullName: 'Administrador Principal',
-        passwordHash: '$2b$10$wT.3kL/eJt0wX.YqJ.G2t.5hB4f6n7g8h9i0j1k2l3m4n5o6p7q8r', // Dummy hash for seed
+        email: adminEmail,
+        fullName: process.env.INITIAL_SUPERADMIN_NAME || 'Administrador Principal',
+        passwordHash,
         role: 'SUPER_ADMIN',
+        isActive: true,
+      },
+    });
+  } else {
+    admin = await prisma.adminUser.update({
+      where: { id: admin.id },
+      data: {
+        passwordHash,
+        isActive: true,
       },
     });
   }
