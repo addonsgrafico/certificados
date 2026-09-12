@@ -103,7 +103,7 @@ export class AuthService {
         res.cookie('admin_session', rawSessionToken, {
           httpOnly: true,
           secure: isProduction,
-          sameSite: 'strict',
+          sameSite: isProduction ? 'none' : 'lax',
           expires: expiresAt,
           path: '/',
         });
@@ -172,7 +172,7 @@ export class AuthService {
     }
 
     // Crear sesión de servidor
-    await createSession();
+    const sessionToken = await createSession();
 
     await this.securityService.logAudit({
       adminId: admin.id,
@@ -186,6 +186,7 @@ export class AuthService {
 
     return {
       mfaRequired: false,
+      token: sessionToken,
       user: {
         id: admin.id,
         email: admin.email,

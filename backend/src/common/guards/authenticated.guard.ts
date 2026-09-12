@@ -13,7 +13,11 @@ export class AuthenticatedGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
-    const sessionToken = request.cookies?.admin_session;
+    const authHeader = request.headers['authorization'];
+    const bearerToken = authHeader && authHeader.startsWith('Bearer ')
+      ? authHeader.slice(7).trim()
+      : null;
+    const sessionToken = request.cookies?.admin_session || bearerToken;
 
     if (!sessionToken) {
       throw new UnauthorizedException('Sesión no encontrada. Inicie sesión nuevamente.');

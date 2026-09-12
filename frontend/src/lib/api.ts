@@ -19,9 +19,12 @@ export async function fetchApi<T = any>(
   const baseUrl = getBaseApiUrl();
   const url = `${baseUrl}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
 
-  const headers = {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('admin_session_token') : null;
+
+  const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    ...options.headers,
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(options.headers as Record<string, string>),
   };
 
   if (options.body && options.body instanceof FormData) {

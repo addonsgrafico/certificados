@@ -29,6 +29,10 @@ export default function AdminLoginPage() {
         body: JSON.stringify({ email, pass: password, totpCode: totpCode || undefined }),
       });
 
+      if (res.token) {
+        localStorage.setItem('admin_session_token', res.token);
+      }
+
       if (res.mfaRequired) {
         setMfaRequired(true);
         if (res.mfaSetupRequired) {
@@ -52,10 +56,13 @@ export default function AdminLoginPage() {
     setErrorMsg(null);
 
     try {
-      await fetchApi('/auth/mfa/enable', {
+      const mfaRes = await fetchApi('/auth/mfa/enable', {
         method: 'POST',
         body: JSON.stringify({ secret: mfaQrData.secret, totpCode }),
       });
+      if (mfaRes?.token) {
+        localStorage.setItem('admin_session_token', mfaRes.token);
+      }
       router.push('/admin/dashboard');
     } catch (err: any) {
       setErrorMsg(err.message || 'El código TOTP ingresado es incorrecto.');

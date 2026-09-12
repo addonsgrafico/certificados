@@ -60,6 +60,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     try {
       await fetchApi('/auth/logout', { method: 'POST' });
     } catch (_) {}
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('admin_session_token');
+    }
     router.push('/admin/login');
   };
 
