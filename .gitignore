@@ -20,8 +20,8 @@ node_modules/
 # ALMACENAMIENTO PRIVADO DE PDFS
 # (Nunca incluir en repositorio)
 # =============================================
-storage/
-backend/storage/
+/storage/
+/backend/storage/
 
 # =============================================
 # BUILDS Y COMPILACIÓN
