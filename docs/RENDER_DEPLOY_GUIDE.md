@@ -76,11 +76,11 @@ Si prefiere crear los servicios individualmente desde la interfaz web de Render:
    - **Runtime**: `Node`
    - **Build Command**:
      ```bash
-     npm install && npm run build --workspace=packages/shared && npx prisma generate --schema=./backend/prisma/schema.prisma && npm run build --workspace=backend
+     npm install --include=dev && npm run build --workspace=packages/shared && npx prisma generate --schema=./backend/prisma/schema.prisma && npm run build --workspace=backend
      ```
    - **Start Command**:
      ```bash
-     npx prisma migrate deploy --schema=./backend/prisma/schema.prisma && npm run start:prod --workspace=backend
+     npx prisma db push --schema=./backend/prisma/schema.prisma --accept-data-loss && npm run start:prod --workspace=backend
      ```
 4. **Variables de Entorno (Environment Variables)**:
    - `NODE_ENV`: `production`
@@ -106,7 +106,7 @@ Si prefiere crear los servicios individualmente desde la interfaz web de Render:
    - **Runtime**: `Node`
    - **Build Command**:
      ```bash
-     npm install && npm run build --workspace=packages/shared && npm run build --workspace=frontend
+     npm install --include=dev && npm run build --workspace=packages/shared && npm run build --workspace=frontend
      ```
    - **Start Command**:
      ```bash

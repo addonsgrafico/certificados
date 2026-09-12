@@ -8,8 +8,8 @@ services:
     plan: free
     region: oregon
     rootDir: .
-    buildCommand: npm install && npm run build --workspace=packages/shared && npx prisma generate --schema=./backend/prisma/schema.prisma && npm run build --workspace=backend
-    startCommand: npx prisma migrate deploy --schema=./backend/prisma/schema.prisma && npm run start:prod --workspace=backend
+    buildCommand: npm install --include=dev && npm run build --workspace=packages/shared && npx prisma generate --schema=./backend/prisma/schema.prisma && npm run build --workspace=backend
+    startCommand: npx prisma db push --schema=./backend/prisma/schema.prisma --accept-data-loss && npm run start:prod --workspace=backend
     envVars:
       - key: NODE_ENV
         value: production
@@ -29,16 +29,10 @@ services:
         value: local
       - key: STORAGE_PATH
         value: ./storage/private/certificates
-      - key: CORS_ORIGINS
-        fromService:
-          type: web
-          name: certificados-frontend
-          property: host
       - key: FRONTEND_URL
-        fromService:
-          type: web
-          name: certificados-frontend
-          property: host
+        value: https://certificados-frontend.onrender.com
+      - key: CORS_ORIGINS
+        value: https://certificados-frontend.onrender.com
 
   # ==============================================================================
   # FRONTEND SERVICE (Next.js 14, TailwindCSS, Admin Suite, Public Portal)
@@ -49,18 +43,15 @@ services:
     plan: free
     region: oregon
     rootDir: .
-    buildCommand: npm install && npm run build --workspace=packages/shared && npm run build --workspace=frontend
+    buildCommand: npm install --include=dev && npm run build --workspace=packages/shared && npm run build --workspace=frontend
     startCommand: npm run start --workspace=frontend
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
-        value: 3000
+        value: 10000
       - key: NEXT_PUBLIC_API_URL
-        fromService:
-          type: web
-          name: certificados-backend
-          property: host
+        value: https://certificados-backend.onrender.com
 
 # ==============================================================================
 # MANAGED DATABASE (PostgreSQL 15+)
